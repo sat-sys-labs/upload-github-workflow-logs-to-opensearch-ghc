@@ -4,7 +4,7 @@ This action provides the functionality to upload the GitHub action workflow run 
 
 # Usage
 
-See [action.yml](https://github.com/sathishkumar-p/upload-github-workflow-logs-to-opensearch/blob/main/action.yml)
+See [action.yml](https://github.com/sat-sys-labs/upload-github-workflow-logs-to-opensearch-ghc/blob/main/action.yml)
 
 ```yml
 upload-logs-to-opensearch:
@@ -14,7 +14,7 @@ upload-logs-to-opensearch:
     if: ${{ !cancelled() && (success() || failure() || needs.deploy.result == 'skipped') }}
     steps:    
       - name: Upload GitHub Action workflow logs to Opensearch
-        uses: sathishkumar-p/upload-github-workflow-logs-to-opensearch@v6
+        uses: sat-sys-labs/upload-github-workflow-logs-to-opensearch-ghc@v6
         with:
           # Github PAT Token access to workflow logs
           github_token: "${{ secrets.PAT }}"

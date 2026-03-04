@@ -105,6 +105,9 @@ def main():
             r = requests.get(job_logs_url, stream=True, headers={
                 "Authorization": f"token {github_token}"
             })
+            if r.status_code == 500:
+                print(f"Warning: GitHub API returned 500 for job {job_id}, skipping logs for this job")
+                continue
             if not r.ok:
                 output = "Failed to download logs"
                 print(f"Error: {output}")

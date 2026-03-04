@@ -1,6 +1,6 @@
-name: "Upload GitHub Action workflows logs to opensearch"
-description: "Downloads the workflow logs and uploads to opensearch"
-author: "Sathishkumar-P"
+name: "Uploads GitHub Enterprise Action workflow logs to Opensearch"
+description: "Downloads the workflow logs and uploads to Opensearch"
+author: "Sathishkumar"
 inputs:
   github_token:
     description: "GitHub PAT"
