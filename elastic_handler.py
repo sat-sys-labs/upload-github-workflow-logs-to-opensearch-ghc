@@ -77,6 +77,8 @@ class ElasticHandler(logging.Handler):
             return
 
     def flush(self):
+        if not self.buffer:
+            return
         # if the index is not exist, create it with mapping:
         if not es.indices.exists(index=opensearch_index):
             mapping = '''

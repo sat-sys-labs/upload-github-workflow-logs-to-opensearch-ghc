@@ -50,28 +50,10 @@ def main():
         print(f"Error: {output}")
         sys.exit(-1)        
     elastic_logger = logging.getLogger("elastic")
-    metadata_url = f"{github_host_api}/repos/{github_org}/{github_repo}/actions/runs/{github_run_id}"
-    try:
-        r = requests.get(metadata_url, stream=True, headers={
-            "Authorization": f"token {github_token}"
-        })
-        if not r.ok:
-            output = f"Failed to get run metadata: GitHub API returned {r.status_code} for {metadata_url}"
-            print(f"Error: {output}")
-            print(f"::set-output name=result::{output}")
-            sys.exit(-1)
-        metadata = json.loads(r.content)
-        jobs_url = metadata.get('jobs_url')
-        metadata.pop('repository', None)
-        metadata.pop('head_repository', None)
-        metadata = {
-            "metadata_" + k: v for k,v in metadata.items()
-        }
-    except Exception as exc:
-        output = "Failed to get run metadata: " + str(exc)
-        print(f"Error: {output}")
-        print(f"::set-output name=result::{output}")
-        sys.exit(-1)
+    # Build jobs_url directly - avoids the /actions/runs/{id} endpoint which
+    # fails on GHE with "suffixed values" error
+    jobs_url = f"{github_host_api}/repos/{github_org}/{github_repo}/actions/runs/{github_run_id}/jobs"
+    metadata = {}
 
     # extract all done jobs
     jobs = {}
@@ -80,8 +62,18 @@ def main():
             "Authorization": f"token {github_token}"
         })
         if not jobs_response.ok:
-            raise Exception("Failed to get run jobs")
+            raise Exception(f"Failed to get run jobs: GitHub API returned {jobs_response.status_code} for {jobs_url}")
         _jobs = json.loads(jobs_response.content)
+        # Extract run-level metadata from the first job entry
+        first_job = _jobs.get('jobs', [{}])[0] if _jobs.get('jobs') else {}
+        metadata = {
+            "metadata_workflow_name": first_job.get('workflow_name'),
+            "metadata_head_branch": first_job.get('head_branch'),
+            "metadata_head_sha": first_job.get('head_sha'),
+            "metadata_run_attempt": first_job.get('run_attempt'),
+            "metadata_run_id": github_run_id,
+            "metadata_repository": f"{github_org}/{github_repo}",
+        }
         for job in _jobs.get('jobs'):
             job_id = job.get('id')
             # no logs for jobs that weren't completed
