@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 import io
 import logging
@@ -99,17 +100,28 @@ def main():
     for job_id in jobs:
         try:
             job_logs_url = f"{github_host_api}/repos/{github_org}/{github_repo}/actions/jobs/{job_id}/logs"
-            r = requests.get(job_logs_url, stream=True, headers={
-                "Authorization": f"token {github_token}"
-            })
-            if r.status_code == 500:
-                print(f"Warning: GitHub API returned 500 for job {job_id}, skipping logs for this job")
+            MAX_TRIES = 5
+            SLEEP_SECS = 2
+            r = None
+            for attempt in range(1, MAX_TRIES + 1):
+                r = requests.get(job_logs_url, stream=True, headers={
+                    "Authorization": f"token {github_token}"
+                })
+                if r.status_code in (500, 502, 503, 504, 404):
+                    if attempt < MAX_TRIES:
+                        time.sleep(SLEEP_SECS * attempt)  # simple backoff
+                        continue
+                    print(f"Warning: status {r.status_code} for job {job_id}, skipping logs for this job")
+                    r = None
+                    break
+                if not r.ok:
+                    output = "Failed to download logs"
+                    print(f"Error: {output}")
+                    print(f"::set-output name=result::{output}")
+                    sys.exit(-1)
+                break
+            if r is None:
                 continue
-            if not r.ok:
-                output = "Failed to download logs"
-                print(f"Error: {output}")
-                print(f"::set-output name=result::{output}")
-                sys.exit(-1)
 
             logs = io.BytesIO(r.content)
             for log in logs:
